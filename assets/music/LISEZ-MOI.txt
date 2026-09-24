@@ -1,0 +1,29 @@
+ADDING MUSIC / AJOUTER DES MUSIQUES
+====================================
+
+ENGLISH
+-------
+1. Copy your audio files into this folder (formats: .mp3 .ogg .wav .m4a .aac .flac .opus).
+2. Start the Randomizer with "Launch-Randomizer.bat" (at the root of the project):
+   it updates the playlist, then opens the page.
+   (If the page is already open: double-click "Update-music.bat", then press F5.)
+
+If you open index.html directly, new music does NOT show up: a web page cannot list a folder
+by itself, so the .bat file writes the list into js\playlist.js for it.
+
+The title shown in the player is the file name: rename it however you like BEFORE running the .bat
+(e.g. "Gear 5 - Drums of Liberation.mp3").
+
+FRANCAIS
+--------
+1. Copie tes fichiers audio dans ce dossier (formats : .mp3 .ogg .wav .m4a .aac .flac .opus).
+2. Lance le Randomizer avec "Lancer-Randomizer.bat" (a la racine du projet) :
+   il met la playlist a jour puis ouvre la page.
+   (Si la page est deja ouverte : double-clique sur "Mettre-a-jour-musiques.bat" puis F5.)
+
+Si tu ouvres directement index.html, les nouvelles musiques n'apparaissent PAS :
+la page ne peut pas lister un dossier toute seule, c'est le .bat qui ecrit la liste
+dans js\playlist.js.
+
+Le titre affiche dans le lecteur est le nom du fichier : renomme-le comme tu veux
+AVANT de lancer le .bat (ex. "Gear 5 - Drums of Liberation.mp3").

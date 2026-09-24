@@ -1,0 +1,11 @@
+# Musiques persos (droits d'auteur : on ne les publie pas sur un depot public)
+assets/music/*
+!assets/music/LISEZ-MOI.txt
+
+# Playlist generee automatiquement a partir de assets/music (regenere par Update-music.bat)
+js/playlist.js
+
+# Fichiers Windows/editeurs
+Thumbs.db
+desktop.ini
+.vscode/

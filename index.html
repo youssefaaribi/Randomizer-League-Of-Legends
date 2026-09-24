@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoL Team Randomizer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Applique le thème enregistré tout de suite, avant l'affichage (évite un flash aux couleurs par défaut) -->
+    <script>
+        try {
+            var savedTheme = localStorage.getItem('lolRandomizer.theme');
+            if (savedTheme && /^[a-z]+$/.test(savedTheme)) document.documentElement.dataset.theme = savedTheme;
+        } catch (e) { /* stockage indisponible : thème par défaut */ }
+    </script>
+</head>
+<body>
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Compte à rebours -->
+    <div class="countdown-overlay" id="countdownOverlay" aria-hidden="true">
+        <div class="countdown-label" id="countdownLabel" data-i18n="count.teams"></div>
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+
+    <!-- Écran final -->
+    <div class="versus-overlay" id="versusOverlay" role="dialog" aria-modal="true" data-i18n-aria="versus.aria">
+        <div class="versus-panel">
+            <div class="versus-title" id="versusTitle" data-i18n="versus.ready"></div>
+            <div class="versus-grid">
+                <div class="versus-team blue" id="versusBlue"></div>
+                <div class="versus-vs">VS</div>
+                <div class="versus-team red" id="versusRed"></div>
+            </div>
+            <div class="versus-notes" id="versusNotes"></div>
+            <div class="versus-actions">
+                <button id="versusMapBtn" data-i18n="versus.map"></button>
+                <button id="versusCloseBtn" class="secondary" data-i18n="versus.close"></button>
+            </div>
+            <div class="versus-share">
+                <button type="button" class="share-text-btn" data-i18n="share.text"></button>
+                <button type="button" class="share-image-btn" data-i18n="share.image"></button>
+                <button type="button" class="share-save-btn" data-i18n="share.save"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Langue (le changement recharge la page : tout est sauvegardé) -->
+        <div class="lang-switch">
+            <span aria-hidden="true">🌐</span>
+            <select id="langSelect" data-i18n-aria="lang.aria">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+        <button type="button" class="link-btn presentation-toggle" id="presentationBtn" aria-pressed="false"
+                data-i18n="app.presentation" data-i18n-title="app.presentation.title"></button>
+        <h1>⚔️ LOL TEAM RANDOMIZER ⚔️</h1>
+        <p class="subtitle" data-i18n="app.subtitle"></p>
+
+        <div class="input-section">
+            <h2 data-i18n="roster.title"></h2>
+
+            <form class="add-friend" id="addFriendForm" autocomplete="off">
+                <input type="text" id="newFriendName" maxlength="20" data-i18n-placeholder="roster.add.placeholder" data-i18n-aria="roster.add.aria">
+                <button type="submit" class="small-btn" data-i18n="roster.add"></button>
+            </form>
+
+            <div class="roster-bar">
+                <div class="roster-count under" id="rosterCount"></div>
+                <div class="roster-bulk">
+                    <button type="button" class="link-btn" id="checkAllBtn" data-i18n="roster.checkAll"></button>
+                    <button type="button" class="link-btn" id="uncheckAllBtn" data-i18n="roster.uncheckAll"></button>
+                </div>
+            </div>
+            <div class="roster-legend" data-i18n-html="roster.legend"></div>
+
+            <div class="roster-grid" id="rosterGrid"></div>
+            <div class="roster-notice" id="rosterNotice" role="status" aria-live="polite"></div>
+
+            <div class="players-footer">
+                <span class="save-hint" data-i18n="roster.saveHint"></span>
+                <button type="button" class="link-btn" id="clearRosterBtn" data-i18n="roster.clear"></button>
+            </div>
+
+            <!-- Sélecteur de mode, comme le lecteur de musique : précédent / suivant / liste -->
+            <div class="mode-bar">
+                <span class="mode-title" data-i18n="mode.title"></span>
+                <button type="button" class="music-btn" id="prevModeBtn" data-i18n-title="mode.prev" data-i18n-aria="mode.prev">◀</button>
+                <select id="modeSelect" data-i18n-aria="mode.select.aria"></select>
+                <button type="button" class="music-btn" id="nextModeBtn" data-i18n-title="mode.next" data-i18n-aria="mode.next">▶</button>
+            </div>
+            <div class="mode-description" id="modeDescription"></div>
+            <div class="mode-status" id="modeStatus" role="status"></div>
+            <div class="captain-options" id="captainOptions">
+                <label><span data-i18n="captain.blue"></span> <select id="captainBlue"></select></label>
+                <label><span data-i18n="captain.red"></span> <select id="captainRed"></select></label>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn"></button>
+                <button id="resetBtn" data-i18n="btn.reset"></button>
+            </div>
+
+            <!-- Lecteur de musique : les pistes viennent de js/playlist.js -->
+            <div class="music-bar">
+                <button type="button" class="music-btn" id="prevBtn" data-i18n-title="music.prev" data-i18n-aria="music.prev.aria">⏮</button>
+                <button type="button" class="music-btn play" id="musicBtn" data-i18n-title="music.play" data-i18n-aria="music.play">▶</button>
+                <button type="button" class="music-btn" id="nextBtn" data-i18n-title="music.next" data-i18n-aria="music.next.aria">⏭</button>
+                <select id="trackSelect" data-i18n-aria="music.select.aria"></select>
+            </div>
+            <div class="music-status" id="musicStatus" role="status"></div>
+
+            <!-- Sélecteur de thème : même principe que les modes et la musique -->
+            <div class="mode-bar theme-bar">
+                <span class="mode-title" data-i18n="theme.title"></span>
+                <button type="button" class="music-btn" id="prevThemeBtn" data-i18n-title="theme.prev" data-i18n-aria="theme.prev">◀</button>
+                <select id="themeSelect" data-i18n-aria="theme.select.aria"></select>
+                <button type="button" class="music-btn" id="nextThemeBtn" data-i18n-title="theme.next" data-i18n-aria="theme.next">▶</button>
+            </div>
+            <div class="mode-description" id="themeDescription"></div>
+            <div class="volume-control">
+                <label for="volume" data-i18n="volume.label"></label>
+                <input type="range" id="volume" min="0" max="100" value="50">
+                <label class="sfx-toggle"><input type="checkbox" id="sfxToggle" checked> <span data-i18n="sfx.label"></span></label>
+                <label class="sfx-toggle"><input type="checkbox" id="championLineToggle"> <span data-i18n="line.toggle"></span></label>
+            </div>
+            <details class="line-settings" id="championLineSettings">
+                <summary data-i18n="line.summary"></summary>
+                <div class="line-settings-body">
+                    <p class="line-note" data-i18n-html="line.note1"></p>
+                    <label><span data-i18n="line.fallback.label"></span>
+                        <select id="championFallback">
+                            <option value="none" data-i18n="line.fallback.none"></option>
+                            <option value="favorite" data-i18n="line.fallback.favorite"></option>
+                            <option value="random" data-i18n="line.fallback.random"></option>
+                        </select>
+                    </label>
+                    <label><span data-i18n="line.test.with"></span> <select id="championTestSelect"></select></label>
+                    <div class="line-test">
+                        <button type="button" class="link-btn" id="championTestBtn" data-i18n="line.test.btn"></button>
+                        <span class="line-info" id="championTestInfo"></span>
+                    </div>
+                    <p class="line-note" data-i18n="line.note2"></p>
+                </div>
+            </details>
+            <audio id="bgMusic" preload="metadata"></audio>
+        </div>
+
+        <div class="randomizer-display" id="drawArea">
+            <div class="pick-label" id="pickLabel" data-i18n="draw.ready"></div>
+            <div class="current-pick" id="currentPick"></div>
+            <div class="draw-warning" id="drawWarning"></div>
+            <div class="captain-actions" id="captainActions">
+                <button type="button" class="link-btn" id="captainRandomBtn" data-i18n="captain.random"></button>
+            </div>
+            <div class="adjust-hint" id="adjustHint">
+                <span id="adjustHintText" role="status"></span>
+                <div class="post-actions">
+                    <button type="button" class="link-btn" id="undoBtn" hidden data-i18n-title="undo.title"></button>
+                    <button type="button" class="link-btn rematch-btn" id="rematchBtn" data-i18n="rematch.label" data-i18n-title="rematch.title"></button>
+                    <button type="button" class="link-btn" id="showVersusBtn" data-i18n="final.show"></button>
+                    <button type="button" class="link-btn share-text-btn" data-i18n="share.text"></button>
+                    <button type="button" class="link-btn share-image-btn" data-i18n="share.image"></button>
+                    <button type="button" class="link-btn share-save-btn" data-i18n="share.save"></button>
+                </div>
+                <div class="winner-bar" id="winnerBar" hidden>
+                    <span id="winnerText" data-i18n="winner.who"></span>
+                    <button type="button" class="link-btn win-btn blue" id="winBlueBtn" data-i18n="winner.blue"></button>
+                    <button type="button" class="link-btn win-btn red" id="winRedBtn" data-i18n="winner.red"></button>
+                </div>
+            </div>
+            <div class="remaining-pool" id="remainingPool"></div>
+        </div>
+
+        <div class="teams-section">
+            <div class="team team-blue"><h2>🔵 TEAM BLUE</h2><div class="team-slots" id="blueTeam"></div></div>
+            <div class="vs-section"><div class="vs">VS</div></div>
+            <div class="team team-red"><h2>🔴 TEAM RED</h2><div class="team-slots" id="redTeam"></div></div>
+        </div>
+
+        <!-- Carte 3D -->
+        <div class="minimap-section" id="minimapSection">
+            <h2>🗺️ SUMMONER'S RIFT</h2>
+            <div class="minimap-wrapper">
+                <img class="minimap-bg" id="minimapImg" src="assets/map3d.png" alt="Summoner's Rift">
+                <div class="map-tokens-overlay" id="mapTokensOverlay"></div>
+            </div>
+        </div>
+
+        <!-- Historique des parties et classement -->
+        <details class="history-section" id="historySection">
+            <summary id="historySummary" data-i18n="history.summary.default"></summary>
+            <div class="history-body" id="historyBody"></div>
+        </details>
+    </div>
+
+    <!-- Télécommande du mode présentation (visible seulement dans ce mode) -->
+    <div class="presentation-bar" id="presentationBar">
+        <button type="button" class="pres-btn" id="presPrevModeBtn" data-i18n-title="mode.prev" data-i18n-aria="mode.prev">◀</button>
+        <span class="pres-mode" id="presentationMode"></span>
+        <button type="button" class="pres-btn" id="presNextModeBtn" data-i18n-title="mode.next" data-i18n-aria="mode.next">▶</button>
+        <button type="button" class="pres-btn main" id="presStartBtn"></button>
+        <button type="button" class="pres-btn" id="presRematchBtn" hidden data-i18n="pres.rematch"></button>
+        <button type="button" class="pres-btn" id="presResetBtn" data-i18n="btn.reset"></button>
+        <button type="button" class="pres-btn" id="presFullscreenBtn" data-i18n-title="pres.fullscreen">⛶</button>
+        <button type="button" class="pres-btn" id="presExitBtn" data-i18n="pres.exit" data-i18n-title="pres.exit.title"></button>
+        <span class="pres-notice" id="presentationNotice" role="status"></span>
+    </div>
+
+    <!-- Scripts classiques (pas de modules) : l'ordre compte, et ça marche en double-clic -->
+    <script src="js/i18n.js"></script>
+    <script src="js/lang-fr.js"></script>
+    <script src="js/lang-en.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/champions.js"></script>
+    <script src="js/confetti.js"></script>
+    <script src="js/playlist.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/themes.js"></script>
+    <script src="js/pick-sounds.js"></script>
+    <script src="js/modes.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/roster.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/overlay.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/recap.js"></script>
+    <script src="js/presentation.js"></script>
+    <script src="js/randomizer.js"></script>
+    <script src="js/captains.js"></script>
+    <script src="js/adjust.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
