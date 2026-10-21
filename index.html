@@ -38,6 +38,8 @@
             </div>
             <div class="versus-share">
                 <button type="button" class="share-text-btn" data-i18n="share.text"></button>
+                <button type="button" class="share-chat-blue-btn" data-i18n="share.chat.blue" data-i18n-title="share.chat.title"></button>
+                <button type="button" class="share-chat-red-btn" data-i18n="share.chat.red" data-i18n-title="share.chat.title"></button>
                 <button type="button" class="share-image-btn" data-i18n="share.image"></button>
                 <button type="button" class="share-save-btn" data-i18n="share.save"></button>
             </div>
@@ -56,7 +58,7 @@
         <button type="button" class="link-btn presentation-toggle" id="presentationBtn" aria-pressed="false"
                 data-i18n="app.presentation" data-i18n-title="app.presentation.title"></button>
         <h1>⚔️ LOL TEAM RANDOMIZER ⚔️</h1>
-        <p class="subtitle" data-i18n="app.subtitle"></p>
+        <p class="subtitle" id="appSubtitle"></p>
 
         <div class="input-section">
             <h2 data-i18n="roster.title"></h2>
@@ -69,11 +71,12 @@
             <div class="roster-bar">
                 <div class="roster-count under" id="rosterCount"></div>
                 <div class="roster-bulk">
+                    <button type="button" class="link-btn" id="importLobbyBtn" data-i18n="lobby.btn" data-i18n-title="lobby.btn.title"></button>
                     <button type="button" class="link-btn" id="checkAllBtn" data-i18n="roster.checkAll"></button>
                     <button type="button" class="link-btn" id="uncheckAllBtn" data-i18n="roster.uncheckAll"></button>
                 </div>
             </div>
-            <div class="roster-legend" data-i18n-html="roster.legend"></div>
+            <div class="roster-legend" id="rosterLegend"></div>
 
             <div class="roster-grid" id="rosterGrid"></div>
             <div class="roster-notice" id="rosterNotice" role="status" aria-live="polite"></div>
@@ -82,6 +85,15 @@
                 <span class="save-hint" data-i18n="roster.saveHint"></span>
                 <button type="button" class="link-btn" id="clearRosterBtn" data-i18n="roster.clear"></button>
             </div>
+
+            <!-- Format de la partie : 5v5 / 4v4 / 3v3 -->
+            <div class="mode-bar format-bar">
+                <span class="mode-title" data-i18n="format.title"></span>
+                <button type="button" class="music-btn" id="prevFormatBtn" data-i18n-title="format.prev" data-i18n-aria="format.prev">◀</button>
+                <select id="formatSelect" data-i18n-aria="format.select.aria"></select>
+                <button type="button" class="music-btn" id="nextFormatBtn" data-i18n-title="format.next" data-i18n-aria="format.next">▶</button>
+            </div>
+            <div class="mode-description" id="formatDescription"></div>
 
             <!-- Sélecteur de mode, comme le lecteur de musique : précédent / suivant / liste -->
             <div class="mode-bar">
@@ -161,6 +173,8 @@
                     <button type="button" class="link-btn rematch-btn" id="rematchBtn" data-i18n="rematch.label" data-i18n-title="rematch.title"></button>
                     <button type="button" class="link-btn" id="showVersusBtn" data-i18n="final.show"></button>
                     <button type="button" class="link-btn share-text-btn" data-i18n="share.text"></button>
+                    <button type="button" class="link-btn share-chat-blue-btn" data-i18n="share.chat.blue" data-i18n-title="share.chat.title"></button>
+                    <button type="button" class="link-btn share-chat-red-btn" data-i18n="share.chat.red" data-i18n-title="share.chat.title"></button>
                     <button type="button" class="link-btn share-image-btn" data-i18n="share.image"></button>
                     <button type="button" class="link-btn share-save-btn" data-i18n="share.save"></button>
                 </div>
@@ -174,9 +188,9 @@
         </div>
 
         <div class="teams-section">
-            <div class="team team-blue"><h2>🔵 TEAM BLUE</h2><div class="team-slots" id="blueTeam"></div></div>
+            <div class="team team-blue"><h2 data-i18n="team.blue.title"></h2><div class="team-slots" id="blueTeam"></div></div>
             <div class="vs-section"><div class="vs">VS</div></div>
-            <div class="team team-red"><h2>🔴 TEAM RED</h2><div class="team-slots" id="redTeam"></div></div>
+            <div class="team team-red"><h2 data-i18n="team.red.title"></h2><div class="team-slots" id="redTeam"></div></div>
         </div>
 
         <!-- Carte 3D -->
@@ -194,6 +208,9 @@
             <div class="history-body" id="historyBody"></div>
         </details>
     </div>
+
+    <!-- Visible seulement pendant un tirage : passe la cinématique et affiche tout de suite le résultat -->
+    <button type="button" class="skip-btn" id="skipBtn" data-i18n="skip.btn" data-i18n-title="skip.title"></button>
 
     <!-- Télécommande du mode présentation (visible seulement dans ce mode) -->
     <div class="presentation-bar" id="presentationBar">
@@ -225,6 +242,7 @@
     <script src="js/modes.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/roster.js"></script>
+    <script src="js/lobby.js"></script>
     <script src="js/map.js"></script>
     <script src="js/overlay.js"></script>
     <script src="js/stats.js"></script>

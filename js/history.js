@@ -17,8 +17,9 @@ function loadHistory() {
 }
 
 function isValidMatch(m) {
-    const team = t => Array.isArray(t) && t.length === TEAM_SIZE && t.every(p => p && typeof p.id === 'string' && typeof p.name === 'string');
-    return m && typeof m.id === 'string' && team(m.blue) && team(m.red);
+    // Toutes les parties sont gardées, quel que soit le format (5v5, 4v4, 3v3) : deux équipes de même taille
+    const team = t => Array.isArray(t) && TEAM_FORMATS[t.length] && t.every(p => p && typeof p.id === 'string' && typeof p.name === 'string');
+    return m && typeof m.id === 'string' && team(m.blue) && team(m.red) && m.blue.length === m.red.length;
 }
 
 function saveHistory() {

@@ -1,6 +1,6 @@
 // ── Logique du tirage ──
 // Un joueur est un ami du roster : { id, name, present, prefs }.
-// Un résultat ("assignment") : { blue: [5 joueurs], red: [5 joueurs], warnings: [], hasRoles: bool, champions: { idJoueur: champion } | absent }
+// Un résultat ("assignment") : { blue: [TEAM_SIZE joueurs], red: [TEAM_SIZE joueurs], warnings: [], hasRoles: bool, champions: { idJoueur: champion } | absent }
 let players = [], remainingPlayers = [], blueTeam = [], redTeam = [];
 let isRandomizing = false;
 let previousAssignments = {}; // id du joueur → rôle du tirage précédent
@@ -54,6 +54,12 @@ function generateAssignment(list) {
         if (broken < bestBroken) { best = { blue, red }; bestBroken = broken; }
     }
     return { blue: best.blue, red: best.red, warnings: computeWarnings(best), hasRoles: true };
+}
+
+// Mode ARAM : aucune règle, juste deux équipes au hasard (ni rôles ni lanes)
+function generateNoRoleAssignment(list) {
+    const s = shuffle(list);
+    return { blue: s.slice(0, TEAM_SIZE), red: s.slice(TEAM_SIZE), warnings: [], hasRoles: false };
 }
 
 // Joueurs placés sur un rôle "à éviter" (tirage impossible à satisfaire, ou échange manuel)
@@ -124,7 +130,7 @@ function generateRematchAssignment(previous) {
     return result;
 }
 
-// Un champion différent pour chacun des 10 joueurs : { idJoueur: champion }
+// Un champion différent pour chaque joueur : { idJoueur: champion }
 function assignChampions(assignment) {
     const picked = pickChampions(PLAYERS_NEEDED), byPlayer = {};
     [...assignment.blue, ...assignment.red].forEach((p, i) => { byPlayer[p.id] = picked[i]; });
@@ -132,7 +138,7 @@ function assignChampions(assignment) {
 }
 
 // ── Début et fin communs à tous les modes ──
-// Renvoie la liste des joueurs présents, ou null (avec un message) s'il n'y en a pas exactement 10
+// Renvoie la liste des joueurs présents, ou null (avec un message) s'il n'y en a pas exactement PLAYERS_NEEDED (10, 8 ou 6)
 function validatePresent() {
     const present = getPresentPlayers();
     if (present.length === PLAYERS_NEEDED) return present;
@@ -146,9 +152,11 @@ function validatePresent() {
 
 function lockDrawUi() {
     isRandomizing = true; document.getElementById('startBtn').disabled = true; setModeControlsDisabled(true);
+    document.body.classList.add('drawing'); // affiche le bouton "Passer la cinématique"
 }
 function unlockDrawUi() {
     isRandomizing = false; document.getElementById('startBtn').disabled = false; setModeControlsDisabled(false);
+    document.body.classList.remove('drawing');
 }
 
 // Prépare l'écran : tout est remis à zéro, la musique démarre
@@ -178,11 +186,13 @@ function finishDraw(assignment, cancelled) {
     launchConfetti();
     sfx.fanfare();
 
+    const delay = skipDraw ? 0 : 600; // cinématique passée : l'écran final s'affiche tout de suite
+    resetSkipDraw();
     setTimeout(() => {
         if (cancelled()) return;
         if (hasRoles) renderMinimapTokens(assignment.blue.map(p => p.name), assignment.red.map(p => p.name));
         showVersusScreen(assignment);
-    }, 600);
+    }, delay);
 
     unlockDrawUi();
     enableAdjustments(assignment); // échanger deux joueurs / relancer un poste
@@ -198,6 +208,7 @@ async function startRandomizer() {
     if (mode.captains && !validateCaptainChoices()) return;
 
     const myDraw = ++drawId, cancelled = () => myDraw !== drawId;
+    resetSkipDraw();
     lockDrawUi();
 
     if (mode.champions) { // il faut la liste des champions avant de commencer
@@ -218,6 +229,7 @@ async function startRematch() {
     const everyone = [...currentAssignment.blue, ...currentAssignment.red];
 
     const myDraw = ++drawId, cancelled = () => myDraw !== drawId;
+    resetSkipDraw();
     lockDrawUi();
     if (mode.champions) {
         const ok = await loadChampions();
@@ -230,10 +242,10 @@ async function startRematch() {
 // ── Modes "Classique" et "Champions au hasard" : équipes + rôles (+ un champion par joueur) ──
 // forcedAssignment : répartition déjà décidée (revanche) ; sinon elle est tirée au hasard
 async function runRoleDraw(present, mode, cancelled, forcedAssignment = null) {
-    const assignment = forcedAssignment || generateAssignment(present);
+    const assignment = forcedAssignment || (mode.roles ? generateAssignment(present) : generateNoRoleAssignment(present));
     if (mode.champions) {
         assignment.champions = assignChampions(assignment);
-        await preloadChampionIcons(Object.values(assignment.champions));
+        await orSkip(preloadChampionIcons(Object.values(assignment.champions)));
         if (cancelled()) return;
     }
 
@@ -247,8 +259,9 @@ async function runRoleDraw(present, mode, cancelled, forcedAssignment = null) {
     // Ordre des picks : Blue puis Red, poste par poste
     const picks = [];
     roles.forEach((role, i) => {
-        picks.push({ slot: `blue${i + 1}`, team: blueTeam, side: 'blue', role, label: `🔵 BLUE - ${role}`, player: assignment.blue[i] });
-        picks.push({ slot: `red${i + 1}`,  team: redTeam,  side: 'red',  role, label: `🔴 RED - ${role}`,  player: assignment.red[i] });
+        const place = assignment.hasRoles === false ? `#${i + 1}` : role; // ARAM : pas de rôle, juste un numéro
+        picks.push({ slot: `blue${i + 1}`, team: blueTeam, side: 'blue', role, label: `🔵 ${teamName('blue').toUpperCase()} - ${place}`, player: assignment.blue[i] });
+        picks.push({ slot: `red${i + 1}`,  team: redTeam,  side: 'red',  role, label: `🔴 ${teamName('red').toUpperCase()} - ${place}`,  player: assignment.red[i] });
     });
 
     for (const pick of picks) {
@@ -265,9 +278,8 @@ async function runRoleDraw(present, mode, cancelled, forcedAssignment = null) {
         pick.team.push(pick.player);
         updateRemainingPool(players, remainingPlayers);
 
-        // Pause avant le pick suivant : au moins le temps de l'intro éventuelle de l'ami puis de la phrase de l'annonceur
         // Pause avant le pick suivant : au moins le temps du jingle de l'ami puis de la réplique de son champion (si activée)
-        await Promise.all([wait(1300), playPickSounds(pick.player, champ || null)]);
+        await Promise.all([drawWait(1300), skipDraw ? null : orSkip(playPickSounds(pick.player, champ || null))]);
         if (cancelled()) return;
     }
 
@@ -278,6 +290,7 @@ async function runRoleDraw(present, mode, cancelled, forcedAssignment = null) {
 // keepMusic = true : la musique n'est pas coupée (changement de mode).
 function resetDraw(keepMusic = false) {
     drawId++; // annule un éventuel tirage en cours
+    resetSkipDraw();
     championLine.cancel(); disableAdjustments(); cancelCaptainPick(); forgetCurrentMatch();
     if (!keepMusic && isPlaying) toggleMusic();
     stopConfetti();

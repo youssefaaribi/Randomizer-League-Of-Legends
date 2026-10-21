@@ -12,16 +12,31 @@ function buildDiscordText() {
     if (!info) return '';
     const { a, mode, date } = info;
     const lines = [t(a.rematch ? 'share.text.rematch' : 'share.text.ready', { mode: mode.label, date: date.toLocaleDateString(LOCALE) }), ''];
-    [['blue', '🔵 **TEAM BLUE**'], ['red', '🔴 **TEAM RED**']].forEach(([side, title], idx) => {
+    [['blue', `🔵 **${teamName('blue').toUpperCase()}**`], ['red', `🔴 **${teamName('red').toUpperCase()}**`]].forEach(([side, title], idx) => {
         if (idx) lines.push('');
         lines.push(title);
         a[side].forEach((p, i) => {
-            if (!a.hasRoles) { lines.push(i === 0 ? t('share.text.captain', { name: p.name }) : `• ${p.name}`); return; }
+            if (!a.hasRoles) { lines.push(a.captains && i === 0 ? t('share.text.captain', { name: p.name }) : `• ${p.name}`); return; }
             const champ = a.champions && a.champions[p.id];
             lines.push(t('share.text.row', { role: roles[i], name: p.name }) + (champ ? ` — ${champ.name}` : ''));
         });
     });
     return lines.join('\n');
+}
+
+// ── Texte pour le chat du jeu : une seule ligne par équipe, sans emoji ni mise en forme ──
+// (le chat de LoL n'affiche pas les emojis et un retour à la ligne collé enverrait un message coupé en deux)
+function buildGameChatText(side) {
+    const info = shareInfo();
+    if (!info) return '';
+    const a = info.a;
+    const clean = s => String(s).replace(/[\u0000-\u001f\u007f]+/g, ' ').trim(); // un pseudo ne doit jamais casser la ligne
+    const parts = a[side].map((p, i) => {
+        const champ = a.champions && a.champions[p.id];
+        const label = a.hasRoles ? `${roles[i]} ${clean(p.name)}` : (a.captains && i === 0 ? t('share.chat.captain', { name: clean(p.name) }) : clean(p.name));
+        return label + (champ ? ` (${champ.name})` : '');
+    });
+    return `${teamName(side).toUpperCase()}: ${parts.join(' | ')}`;
 }
 
 async function copyToClipboard(text) {
@@ -110,7 +125,7 @@ async function buildShareCanvas() {
             ctx.fillStyle = grad; roundedRect(ctx, x, y, COL_W, ROW_H, 10); ctx.fill();
             ctx.strokeStyle = color; ctx.lineWidth = 2; roundedRect(ctx, x, y, COL_W, ROW_H, 10); ctx.stroke();
 
-            // Rôle (icône) ou 👑 / numéro en mode Capitaines
+            // Rôle (icône) ou 👑 / numéro sans rôles (Capitaines, ARAM)
             let textX = x + 20;
             if (a.hasRoles) {
                 if (roleImgs[roles[i]]) ctx.drawImage(roleImgs[roles[i]], x + 16, midY - 18, 36, 36);
@@ -118,7 +133,7 @@ async function buildShareCanvas() {
                 textX = x + 68;
             } else {
                 ctx.fillStyle = C.gold; ctx.font = `700 20px ${FONT}`;
-                ctx.fillText(i === 0 ? '👑' : `#${i + 1}`, x + 18, midY);
+                ctx.fillText(a.captains && i === 0 ? '👑' : `#${i + 1}`, x + 18, midY);
                 textX = x + 72;
             }
 
@@ -170,6 +185,10 @@ async function shareCopyText(btn) {
     flashButton(btn, (await copyToClipboard(buildDiscordText())) ? t('flash.copied') : t('flash.copyFailed'));
 }
 
+async function shareCopyChat(btn, side) {
+    flashButton(btn, (await copyToClipboard(buildGameChatText(side))) ? t('flash.copied') : t('flash.copyFailed'));
+}
+
 async function shareCopyImage(btn) {
     flashButton(btn, t('flash.creating'));
     const canvas = await buildShareCanvas();
@@ -196,6 +215,8 @@ async function shareSaveImage(btn) {
 // Les mêmes boutons existent sur l'écran final et sous le résultat : on les branche par classe
 function initShare() {
     document.querySelectorAll('.share-text-btn').forEach(b => b.addEventListener('click', () => shareCopyText(b)));
+    document.querySelectorAll('.share-chat-blue-btn').forEach(b => b.addEventListener('click', () => shareCopyChat(b, 'blue')));
+    document.querySelectorAll('.share-chat-red-btn').forEach(b => b.addEventListener('click', () => shareCopyChat(b, 'red')));
     document.querySelectorAll('.share-image-btn').forEach(b => b.addEventListener('click', () => shareCopyImage(b)));
     document.querySelectorAll('.share-save-btn').forEach(b => b.addEventListener('click', () => shareSaveImage(b)));
 }

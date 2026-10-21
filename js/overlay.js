@@ -6,12 +6,12 @@ async function runCountdown(shouldStop, label = t('count.teams')) {
     document.getElementById('countdownLabel').textContent = label;
     overlay.classList.add('visible');
     for (const step of ['3', '2', '1', 'GO !']) {
-        if (shouldStop()) break;
+        if (shouldStop() || skipDraw) break;
         const isGo = step === 'GO !';
         num.textContent = step;
         num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); // relance l'animation
         sfx.countdown(isGo);
-        await wait(isGo ? 600 : 750);
+        await skippableWait(isGo ? 600 : 750);
     }
     overlay.classList.remove('visible');
 }
@@ -19,7 +19,7 @@ async function runCountdown(shouldStop, label = t('count.teams')) {
 function hideCountdown() { document.getElementById('countdownOverlay').classList.remove('visible'); }
 
 // ── Écran final ──
-// assignment.hasRoles === false (mode Capitaines) : pas de rôles, on affiche 👑 pour le capitaine puis #2, #3...
+// assignment.hasRoles === false (Capitaines, ARAM) : pas de rôles, on affiche #1, #2, #3... (👑 pour le capitaine en mode Capitaines)
 // assignment.champions (mode Champions) : le champion de chaque joueur est affiché à côté de son nom
 function buildVersusRow(player, index, side, assignment) {
     const hasRoles = assignment.hasRoles !== false, role = roles[index];
@@ -34,7 +34,7 @@ function buildVersusRow(player, index, side, assignment) {
         img.src = roleIconUrls[role]; img.alt = '';
         roleBox.append(img, document.createTextNode(role));
     } else {
-        roleBox.textContent = index === 0 ? t('slot.captain') : `#${index + 1}`;
+        roleBox.textContent = assignment.captains && index === 0 ? t('slot.captain') : `#${index + 1}`;
     }
 
     const name = document.createElement('span');

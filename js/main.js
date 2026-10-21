@@ -1,6 +1,10 @@
 // ── Point d'entrée : initialisation + branchement des événements ──
 applyTranslations();     // textes du HTML dans la langue choisie
 initLanguageSwitcher();
+// Textes qui dépendent du format (5v5 / 4v4 / 3v3)
+document.getElementById('appSubtitle').textContent = t('app.subtitle', { size: TEAM_SIZE });
+document.getElementById('rosterLegend').innerHTML = t('roster.legend', { n: PLAYERS_NEEDED }); // texte du dictionnaire uniquement
+initFormatPicker();
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
@@ -17,6 +21,7 @@ document.getElementById('addFriendForm').addEventListener('submit', e => {
 document.getElementById('checkAllBtn').addEventListener('click', () => setAllPresent(true));
 document.getElementById('uncheckAllBtn').addEventListener('click', () => setAllPresent(false));
 document.getElementById('clearRosterBtn').addEventListener('click', clearRoster);
+initLobbyImport();
 
 // Musique + effets sonores
 initMusicPlayer();
@@ -32,6 +37,7 @@ initChampionLineSettings();
 // Tirage
 document.getElementById('startBtn').addEventListener('click', startRandomizer);
 document.getElementById('resetBtn').addEventListener('click', reset);
+document.getElementById('skipBtn').addEventListener('click', requestSkipDraw);
 initThemePicker();
 initOverlays();
 initAdjustments();

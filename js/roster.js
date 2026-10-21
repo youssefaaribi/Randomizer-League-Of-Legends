@@ -29,7 +29,7 @@ function updateRosterSummary() {
     count.textContent = t('roster.present', { n: present, max: PLAYERS_NEEDED });
     count.className = 'roster-count ' + (present === PLAYERS_NEEDED ? 'ok' : present > PLAYERS_NEEDED ? 'over' : 'under');
 
-    const tight = present === PLAYERS_NEEDED ? findUnderstaffedRoles(getPresentPlayers()) : [];
+    const tight = present === PLAYERS_NEEDED && currentMode().roles ? findUnderstaffedRoles(getPresentPlayers()) : [];
     showRosterNotice(tight.length
         ? t('roster.tight', { roles: tight.join(', ') })
         : '');
@@ -43,7 +43,7 @@ function addFriend(rawName) {
     if (!name) return false;
     if (nameExists(name)) { showRosterNotice(t('roster.exists', { name })); return false; }
     const friend = makeFriend(name);
-    friend.present = getPresentPlayers().length < PLAYERS_NEEDED; // au-delà de 10, on ajoute sans cocher
+    friend.present = getPresentPlayers().length < PLAYERS_NEEDED; // une fois l'équipe complète, on ajoute sans cocher
     roster.push(friend);
     commitRoster();
     return true;

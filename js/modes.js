@@ -14,6 +14,12 @@ const GAME_MODES = [
         id: 'captains', label: t('mode.captains.label'), startLabel: t('mode.captains.start'),
         description: t('mode.captains.desc'),
         roles: false, champions: false, captains: true
+    },
+    {
+        // ARAM : deux équipes tirées au hasard, sans rôles ni lanes (c'est le jeu qui donne les champions)
+        id: 'aram', label: t('mode.aram.label'), startLabel: t('mode.aram.start'),
+        description: t('mode.aram.desc'),
+        roles: false, champions: false, captains: false
     }
 ];
 const MODE_KEY = 'lolRandomizer.mode';
@@ -37,9 +43,34 @@ function refreshModeStatus() {
     else setModeStatus('');
 }
 
-// Le mode ne change pas pendant un tirage
+// Le mode (et le format) ne changent pas pendant un tirage
 function setModeControlsDisabled(disabled) {
-    ['modeSelect', 'prevModeBtn', 'nextModeBtn'].forEach(id => { document.getElementById(id).disabled = disabled; });
+    ['modeSelect', 'prevModeBtn', 'nextModeBtn', 'formatSelect', 'prevFormatBtn', 'nextFormatBtn']
+        .forEach(id => { document.getElementById(id).disabled = disabled; });
+}
+
+// ── Format de la partie : 5v5 / 4v4 / 3v3 (le changement recharge la page, comme la langue : tout est sauvegardé) ──
+function initFormatPicker() {
+    const sizes = Object.keys(TEAM_FORMATS).map(Number).sort((a, b) => b - a); // 5, 4, 3
+    const select = document.getElementById('formatSelect');
+    sizes.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = String(n); opt.textContent = t('format.option', { size: n });
+        select.appendChild(opt);
+    });
+    select.value = String(TEAM_SIZE);
+    document.getElementById('formatDescription').textContent =
+        t('format.desc', { n: PLAYERS_NEEDED, roles: roles.join(' · ') });
+
+    const change = size => {
+        if (size === TEAM_SIZE) return;
+        saveSetting(TEAM_SIZE_KEY, String(size));
+        location.reload();
+    };
+    select.addEventListener('change', () => change(Number(select.value)));
+    const shift = step => change(sizes[(sizes.indexOf(TEAM_SIZE) + step + sizes.length) % sizes.length]);
+    document.getElementById('prevFormatBtn').addEventListener('click', () => shift(-1));
+    document.getElementById('nextFormatBtn').addEventListener('click', () => shift(1));
 }
 
 function setMode(index, save = true) {
@@ -57,6 +88,7 @@ function setMode(index, save = true) {
     document.getElementById('captainOptions').classList.toggle('visible', mode.captains);
     renderCaptainOptions();
 
+    updateRosterSummary(); // l'avertissement "trop peu de joueurs pour un rôle" n'a de sens que dans les modes avec rôles
     refreshModeStatus();
     if (mode.champions) loadChampions(); // on prépare la liste dès qu'on choisit le mode
 }

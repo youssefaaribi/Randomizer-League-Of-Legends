@@ -11,7 +11,7 @@ function generateSlots() {
             // Contenu 100 % statique (rôles + URLs de config.js) : pas de saisie utilisateur ici
             const badge = mode.roles
                 ? `<span class="slot-role"><img src="${roleIconUrls[role]}" alt="${role}"> ${role}</span>`
-                : `<span class="slot-role slot-role-plain">${i === 0 ? t('slot.captain') : '#' + (i + 1)}</span>`;
+                : `<span class="slot-role slot-role-plain">${mode.captains && i === 0 ? t('slot.captain') : '#' + (i + 1)}</span>`;
             const champ = mode.champions
                 ? '<span class="slot-champ"><img class="slot-champ-icon" alt=""><span class="slot-champ-name"></span></span>'
                 : '';
@@ -62,17 +62,19 @@ function animateChampion(slotId, finalChamp, shouldStop) {
         const box = document.getElementById(slotId).querySelector('.slot-champ');
         const nameEl = box.querySelector('.slot-champ-name');
         box.classList.add('has-champ', 'rolling');
-        let it = 0; const max = 12; let spd = 60;
+        let it = 0; const max = 12; let spd = 60 / DRAW_SPEED;
         function step() {
             if (shouldStop()) { box.classList.remove('rolling'); resolve(false); return; }
+            if (skipDraw) it = max; // cinématique passée : on affiche directement le champion
             if (it >= max) {
                 setSlotChampion(slotId, finalChamp);
                 box.classList.remove('champ-locked'); void box.offsetWidth; box.classList.add('champ-locked');
-                sfx.champion(); resolve(true); return;
+                if (!skipDraw) sfx.champion();
+                resolve(true); return;
             }
             nameEl.textContent = championData.list[Math.floor(Math.random() * championData.list.length)].name;
             sfx.tick(it / max);
-            it++; spd += 8; setTimeout(step, spd);
+            it++; spd += 8 / DRAW_SPEED; skipTimeout(step, spd);
         }
         step();
     });
@@ -114,7 +116,7 @@ function lockSlot(slotId, player, side) {
     slot.classList.remove('locked', 'selecting'); slot.classList.add('filled');
     void slot.offsetWidth; slot.classList.add('locked');
     highlightPlayer(player.id); setCurrentPick(player.name);
-    sfx.lockIn(side);
+    if (!skipDraw) sfx.lockIn(side);
 }
 
 // ── Animation de roulette sur un slot ──
@@ -124,20 +126,21 @@ function animateSlot(slotId, candidates, finalPlayer, side, shouldStop) {
     return new Promise(resolve => {
         const slot = document.getElementById(slotId), nameSpan = slot.querySelector('.slot-name');
         slot.classList.remove('locked'); slot.classList.add('selecting'); // 'locked' retiré : l'effet se rejoue à la validation
-        let it = 0, max = 20 + Math.floor(Math.random() * 10), spd = 50;
+        let it = 0, max = 20 + Math.floor(Math.random() * 10), spd = 50 / DRAW_SPEED;
         function anim() {
             if (shouldStop()) { slot.classList.remove('selecting'); resolve(false); return; }
+            if (skipDraw) it = max; // cinématique passée : on affiche directement le joueur
             if (it >= max) {
                 nameSpan.textContent = finalPlayer.name;
                 slot.classList.remove('selecting'); slot.classList.add('filled', 'locked');
                 highlightPlayer(finalPlayer.id); setCurrentPick(finalPlayer.name);
-                sfx.lockIn(side);
+                if (!skipDraw) sfx.lockIn(side);
                 resolve(true); return;
             }
             const rp = candidates[Math.floor(Math.random() * candidates.length)];
             nameSpan.textContent = rp.name; highlightPlayer(rp.id); setCurrentPick(rp.name);
             sfx.tick(it / max);
-            it++; spd += 10; setTimeout(anim, spd);
+            it++; spd += 10 / DRAW_SPEED; skipTimeout(anim, spd);
         }
         anim();
     });

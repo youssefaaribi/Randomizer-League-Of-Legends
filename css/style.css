@@ -160,8 +160,9 @@ button.friend-del:hover { color: #ff6b4a; border-color: #cc3300; }
 
 .roster-notice { min-height: 0; margin-top: 14px; font-size: 0.8rem; }
 .roster-notice.warn { color: #ffcc00; }
+.roster-notice.ok { color: #4ade80; }
 .roster-notice.error { color: #ff6b4a; }
-.roster-notice.warn, .roster-notice.error { padding: 10px 14px; border: 1px solid currentColor; border-radius: 6px; background: rgba(0, 0, 0, 0.3); }
+.roster-notice.warn, .roster-notice.error, .roster-notice.ok { padding: 10px 14px; border: 1px solid currentColor; border-radius: 6px; background: rgba(0, 0, 0, 0.3); }
 
 .players-footer { display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; margin-top: 16px; }
 .save-hint { color: var(--muted-dark); font-size: 0.75rem; }
@@ -369,6 +370,16 @@ table.leaderboard td.lb-badges { white-space: nowrap; }
 }
 .lang-switch select:focus { outline: none; border-color: var(--gold); }
 body.presentation .lang-switch { display: none; }
+/* Bouton "Passer la cinématique" : au-dessus du compte à rebours (z-index 8000), seulement pendant un tirage */
+.skip-btn {
+    display: none; position: fixed; right: 20px; bottom: 20px; z-index: 8500;
+    padding: 14px 22px; font-size: 1rem; letter-spacing: 1px;
+    background: linear-gradient(180deg, var(--border) 0%, var(--border-dim) 100%); color: var(--gold-light);
+    border: 2px solid var(--gold); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+}
+.skip-btn:hover { filter: brightness(1.25); }
+body.drawing .skip-btn { display: block; }
+body.presentation .skip-btn { bottom: 96px; }
 .presentation-bar {
     display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 7000;
     align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px;
@@ -395,6 +406,8 @@ body.presentation .captain-options,
 body.presentation #adjustHintText,
 body.presentation #rematchBtn,
 body.presentation .post-actions .share-text-btn,
+body.presentation .post-actions .share-chat-blue-btn,
+body.presentation .post-actions .share-chat-red-btn,
 body.presentation .post-actions .share-image-btn,
 body.presentation .post-actions .share-save-btn { display: none; }
 body.presentation .container { max-width: 1700px; padding: 12px 24px 150px; }

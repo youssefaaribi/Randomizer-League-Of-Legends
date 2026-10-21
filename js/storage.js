@@ -1,5 +1,6 @@
 // ── Sauvegarde du roster d'amis (localStorage) ──
 // Un ami : { id, name, present, prefs }  avec prefs = { TOP: 'prefer' | 'avoid', ... } (un rôle absent = neutre)
+// Les 5 rôles sont gardés quel que soit le format (en 4v4 ou 3v3, ceux qui ne sont pas joués sont simplement masqués).
 // Tout est dans un try/catch : si le navigateur bloque le stockage, l'appli marche quand même, sans sauvegarde.
 const ROSTER_KEY = 'lolRandomizer.roster.v1';
 const LEGACY_PLAYERS_KEY = 'lolRandomizer.players'; // ancienne version : liste de 10 noms
@@ -11,7 +12,8 @@ function newId() { return Date.now().toString(36) + Math.random().toString(36).s
 
 // jingle : effet sonore joué quand l'ami est tiré ('none' = aucun).
 // voiceChampion : id Data Dragon du "champion fétiche" (ex. 'Garen') dont on joue la réplique quand aucun champion n'est tiré ; '' = aucun.
-function makeFriend(name) { return { id: newId(), name, present: true, prefs: {}, jingle: 'none', voiceChampion: '' }; }
+// lolName : pseudo dans LoL quand l'ami vient d'un import du lobby ('' sinon) ; il sert à le reconnaître la fois suivante, même renommé.
+function makeFriend(name) { return { id: newId(), name, present: true, prefs: {}, jingle: 'none', voiceChampion: '', lolName: '' }; }
 
 // Un jingle valide. Reprend aussi l'ancien format (intro: { text, jingle }) : la phrase de l'annonceur n'existe plus, le jingle est gardé.
 function sanitizeJingle(f) {
@@ -24,12 +26,13 @@ function sanitizeFriend(f) {
     const name = f.name.trim().slice(0, MAX_NAME_LENGTH);
     if (!name) return null;
     const prefs = {};
-    roles.forEach(role => {
+    ALL_ROLES.forEach(role => { // tous les rôles, pas seulement ceux du format : on garde les préférences d'un format à l'autre
         const v = f.prefs && f.prefs[role];
         if (v === 'prefer' || v === 'avoid') prefs[role] = v;
     });
     const voiceChampion = typeof f.voiceChampion === 'string' && /^[A-Za-z0-9]{1,30}$/.test(f.voiceChampion) ? f.voiceChampion : '';
-    return { id: typeof f.id === 'string' && f.id ? f.id : newId(), name, present: !!f.present, prefs, jingle: sanitizeJingle(f), voiceChampion };
+    const lolName = typeof f.lolName === 'string' ? f.lolName.trim().slice(0, MAX_LOL_NAME_LENGTH) : '';
+    return { id: typeof f.id === 'string' && f.id ? f.id : newId(), name, present: !!f.present, prefs, jingle: sanitizeJingle(f), voiceChampion, lolName };
 }
 
 function saveRoster() {

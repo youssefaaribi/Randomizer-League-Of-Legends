@@ -18,11 +18,12 @@ function slotEl(pos) { return document.getElementById(slotId(pos)); }
 function playerAt(pos) { return currentAssignment[pos.side][pos.index]; }
 function canAdjust() { return currentAssignment !== null && !isRandomizing && !adjusting; }
 // Mode Capitaines : le capitaine (1er slot) reste en place
-function isFixedSlot(pos) { return currentAssignment !== null && !currentAssignment.hasRoles && pos.index === 0; }
+function isFixedSlot(pos) { return currentAssignment !== null && currentAssignment.captains && pos.index === 0; }
 
 function setAdjustHint(text) { document.getElementById('adjustHintText').textContent = text; }
 function defaultAdjustHint() {
-    if (!currentAssignment.hasRoles) return t('adjust.hint.captains');
+    if (currentAssignment.captains) return t('adjust.hint.captains');
+    if (!currentAssignment.hasRoles) return t('adjust.hint.aram');
     return t('adjust.hint.roles') + (currentAssignment.champions ? t('adjust.hint.champions') : '');
 }
 
@@ -69,10 +70,11 @@ function enableAdjustments(assignment) {
     currentAssignment = {
         blue: [...assignment.blue], red: [...assignment.red],
         hasRoles: assignment.hasRoles !== false,
+        captains: !!assignment.captains, // mode Capitaines : le 1er de chaque équipe est le capitaine
         rematch: !!assignment.rematch,
         champions: assignment.champions ? { ...assignment.champions } : null
     };
-    document.getElementById('rematchBtn').hidden = !currentAssignment.hasRoles; // pas de revanche sans rôles (mode Capitaines)
+    document.getElementById('rematchBtn').hidden = !currentAssignment.hasRoles; // pas de revanche sans rôles (Capitaines, ARAM)
     swapFrom = null; adjusting = false; rerolledChampions = new Set(); undoStack = []; dragFrom = null;
     updateUndoButton();
     document.querySelectorAll('.slot').forEach(s => {

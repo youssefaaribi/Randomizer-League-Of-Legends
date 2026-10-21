@@ -107,15 +107,15 @@ async function runCaptainsDraw(present, cancelled) {
         (cap.side === 'blue' ? blueTeam : redTeam).push(cap.player);
         captainRemaining = captainRemaining.filter(p => p !== cap.player);
         updateRemainingPool(players, captainRemaining);
-        await Promise.all([wait(900), playPickSounds(cap.player)]);
+        await Promise.all([drawWait(900), skipDraw ? null : orSkip(playPickSounds(cap.player))]);
         if (cancelled()) return;
     }
 
-    // 2) Les 8 autres joueurs : les capitaines choisissent chacun leur tour, le premier est tiré au hasard
+    // 2) Les autres joueurs : les capitaines choisissent chacun leur tour, le premier est tiré au hasard
     const first = Math.random() < 0.5 ? 'blue' : 'red', second = first === 'blue' ? 'red' : 'blue';
-    const order = [first, second, first, second, first, second, first, second];
+    const order = Array.from({ length: PLAYERS_NEEDED - 2 }, (_, i) => (i % 2 === 0 ? first : second));
     setPickLabel(t('captain.starts', { icon: first === 'blue' ? '🔵' : '🔴', name: (first === 'blue' ? blueCap : redCap).name }));
-    await wait(900);
+    await drawWait(900);
     if (cancelled()) return;
 
     for (const side of order) {
@@ -125,7 +125,7 @@ async function runCaptainsDraw(present, cancelled) {
         if (captainRemaining.length === 1) { // dernier joueur : plus rien à choisir
             chosenId = captainRemaining[0].id;
             setPickLabel(t('captain.last', { icon: side === 'blue' ? '🔵' : '🔴', name: cap.name }));
-            await wait(900);
+            await drawWait(900);
             if (cancelled()) return;
         } else {
             setTurn(side);
@@ -144,9 +144,9 @@ async function runCaptainsDraw(present, cancelled) {
         team.push(player);
         lockSlot(`${side}${team.length}`, player, side);
         updateRemainingPool(players, captainRemaining);
-        await Promise.all([wait(900), playPickSounds(player)]);
+        await Promise.all([drawWait(900), skipDraw ? null : orSkip(playPickSounds(player))]);
         if (cancelled()) return;
     }
 
-    finishDraw({ blue: blueTeam, red: redTeam, warnings: [], hasRoles: false }, cancelled);
+    finishDraw({ blue: blueTeam, red: redTeam, warnings: [], hasRoles: false, captains: true }, cancelled);
 }
